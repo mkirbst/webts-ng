@@ -1,0 +1,69 @@
+#!/usr/bin/perl
+#
+##############################################################################################################
+# Teamspeak 3 Users Top10 Munin plugin
+#
+# This script monitors the top 10 Users by online time on your TS3 server.
+# It relies on a periodically updated database. This can be done e.g. by this script:
+#
+# https://github.com/mkirbst/webts-ng
+# 
+#### CONFIG ####
+#
+# Please set the corret login credentials for the mysql database in line 26.
+#
+##############################################################################################################
+
+use strict;
+use Munin::Plugin;
+use DBI;
+
+# sleep to give the database time to get updated, or we get inconsistent values
+# sleep(8);
+
+my ($db_user, $db_name, $db_pass) = ('ts3queryuser', 'ts3db', 'mysqlpassword');
+
+if ($ARGV[0] and $ARGV[0] eq "autoconf") {
+	print "yes\n";
+	exit 0;
+}
+
+
+if ($ARGV[0] and $ARGV[0] eq "config") {
+	print "graph_args --lower-limit 0 --base 1000 --units=si\n";
+	print "graph_vlabel Users\n";
+	print "graph_title absolute individual users seen by server\n";
+	print "graph_category teamspeak\n";
+	print "graph_printf %.0lf\n";	## kill da float values :P
+	print "graph_width 850\n";	## default 400
+	print "graph_total TOTAL\n";
+	print "graph_info absolute individual users seen by server.\n";
+	print "absusers.label abs. individuals\n";
+	exit 0;
+}        
+
+# open connection to database
+my $dbh = DBI->connect("DBI:mysql:database=$db_name", $db_user, $db_pass);
+
+## my $sth = $dbh->prepare('SELECT CLDBID, Minutes, CLNAME FROM ts3top ORDER BY Minutes DESC LIMIT 10; ');
+
+my $sth = $dbh->prepare('SELECT COUNT(CLDBID) FROM ts3db.ts3top;');
+
+$sth->execute() or die $DBI::errstr;;
+
+# FETCHROW ARRAY
+my @results;
+
+while (@results = $sth->fetchrow()) {
+	print "absusers.value ".$results[0]."\n";
+}
+$sth->finish();
+
+## disconnect from database
+$dbh->disconnect();
+
+exit 0;
+
+
+       
+

@@ -1,0 +1,90 @@
+#!/usr/bin/perl
+#
+##############################################################################################################
+# Teamspeak 3 Users Top10 Munin plugin
+#
+# This script monitors the top 10 Users by online time on your TS3 server.
+# It relies on a periodically updated database. This can be done e.g. by this script:
+#
+# https://github.com/mkirbst/webts-ng
+#
+#### CONFIG ####
+#
+# Please set the corret login credentials for the mysql database in line 26.
+#
+##############################################################################################################
+
+use strict;
+use Munin::Plugin;
+use DBI;
+
+# sleep to give the database time to get updated, or we get inconsistent values
+sleep(8);
+
+my ($db_user, $db_name, $db_pass) = ('ts3queryuser', 'ts3db', 'querypassword');
+
+if ($ARGV[0] and $ARGV[0] eq "autoconf") {
+	print "yes\n";
+	exit 0;
+}
+
+if ($ARGV[0] and $ARGV[0] eq "config") {
+	print "graph_args --base 1000  --logarithmic --units=si\n"; 	# better scaling if some users gain very high values
+	print "graph_vlabel Minutes\n";
+	print "graph_title TS3 top10 by user uptime\n";
+	print "graph_category teamspeak\n";
+	print "graph_info This graph shows the uptime for the 10 top ts campers.\n";
+
+	# open connection to database
+	my $dbh = DBI->connect("DBI:mysql:database=$db_name", $db_user, $db_pass);
+
+	# CLDBID CLNAME Minutes
+	my $sth = $dbh->prepare('SELECT CLDBID, Minutes, CLNAME FROM ts3top ORDER BY Minutes DESC LIMIT 10; ');
+
+	$sth->execute() or die $DBI::errstr;;
+
+	# FETCHROW ARRAY
+
+	my @results;
+	my $cleanname;
+
+	while (@results = $sth->fetchrow()) {
+		$results[0] = sprintf("%04d", $results[0]); # it seems as data source id's must have same amouth of digits
+		$results[2] =~ s/[^a-zA-Z0-9_-]/_/g;	# remove crazy unicode
+		$results[2] =~ s/_+/_/g;		# summarize multiple underscores to one underscore to get nice short names
+		print $results[0].".label ".$results[2]."\n"; 
+		print $results[0].".colour COLOUR". $results[0]%29 ."\n"; # needed that every client(id) gets same colour by modulo 29, see http://munin-monitoring.org/wiki/fieldname.colour
+	}
+	$sth->finish();
+
+	## disconnect from database
+	$dbh->disconnect();
+
+	exit 0;
+}        
+
+# open connection to database
+my $dbh = DBI->connect("DBI:mysql:database=$db_name", $db_user, $db_pass);
+
+# CLDBID CLNAME Minutes
+my $sth = $dbh->prepare('SELECT CLDBID, Minutes, CLNAME FROM ts3top ORDER BY Minutes DESC LIMIT 10; ');
+
+$sth->execute() or die $DBI::errstr;;
+
+# FETCHROW ARRAY
+my @results;
+
+while (@results = $sth->fetchrow()) {
+	$results[0] = sprintf("%04d", $results[0]); # it seems as data source id's must have same amouth of digits
+	print $results[0].".value ".$results[1]."\n";
+}
+$sth->finish();
+
+## disconnect from database
+$dbh->disconnect();
+
+exit 0;
+
+
+       
+

@@ -1,0 +1,129 @@
+#!/usr/bin/perl
+#
+##############################################################################################################
+# Teamspeak 3 Users Top10 Munin plugin
+#
+# This script monitors the top 10 Users by online time on your TS3 server.
+# It relies on a periodically updated database. This can be done e.g. by this script:
+#
+# https://github.com/mkirbst/webts-ng
+#
+#### CONFIG ####
+#
+# Please set the corret login credentials for the mysql database in line 26.
+#
+##############################################################################################################
+
+use strict;
+use Munin::Plugin;
+use DBI;
+
+# sleep to give the database time to get updated, or we get inconsistent values
+sleep(7);
+
+my ($db_user, $db_name, $db_pass) = ('ts3queryuser', 'ts3db', 'mysqlpassword');
+
+if ($ARGV[0] and $ARGV[0] eq "autoconf") {
+	print "yes\n";
+	exit 0;
+}
+
+
+if ($ARGV[0] and $ARGV[0] eq "config") {
+	my $isfirst = 1;
+	
+	print "graph_args --lower-limit 0 --base 1000 --units=si\n";
+	print "graph_vlabel Users\n";
+	print "graph_title users on teamspeak server\n";
+	print "graph_category teamspeak\n";
+	print "graph_printf %.0lf\n";	## kill da float values :P
+	print "graph_width 850\n";	## default 400
+	print "graph_total TOTAL\n";
+	print "graph_info This grah shows user count per country on this teamspeak server.\n";
+
+	# open connection to database
+	my $dbh = DBI->connect("DBI:mysql:database=$db_name", $db_user, $db_pass);
+
+	# CLDBID CLNAME Minutes
+	my $sth = $dbh->prepare(' SELECT DISTINCT country FROM ts3top WHERE country IS NOT NULL ORDER BY country ASC');
+
+	$sth->execute() or die $DBI::errstr;;
+
+	# FETCHROW ARRAY
+
+	my @results;
+	my $cleanname;
+
+	while (@results = $sth->fetchrow()) {
+
+		## country-code lookup is ugly, todo here for the future
+		if( $results[0] eq "BE" ) 
+		{
+			print $results[0].".label belgium\n";
+			print $results[0].".colour COLOUR2\n";
+		}
+		elsif( $results[0] eq "FR" ) 
+		{
+			print $results[0].".label france\n";
+			print $results[0].".colour COLOUR1\n";
+		}
+		elsif( $results[0] eq "DE" ) 
+		{
+			print $results[0].".label germany\n";
+			print $results[0].".colour COLOUR0\n";
+		}
+		elsif( $results[0] eq "SE" ) 
+		{
+			print $results[0].".label sweden\n";
+			print $results[0].".colour COLOUR3\n";
+		}
+		else 
+		{
+			print $results[0].".label ".$results[0]."\n";
+		}	
+
+		if( $isfirst == 1 )
+		{
+			print $results[0].".draw AREA\n";
+		}
+		else
+		{
+			print $results[0].".draw STACK\n";
+		}
+		$isfirst = 0;
+ 
+	}
+	$sth->finish();
+
+	## disconnect from database
+	$dbh->disconnect();
+
+	exit 0;
+}        
+
+# open connection to database
+my $dbh = DBI->connect("DBI:mysql:database=$db_name", $db_user, $db_pass);
+
+## mysql statement is so big, because we want all countries (online users 0 or more)
+## mysql outputs normally just matches greater zero, but then munin doesnt draw the
+## datasources. the following statement outputs all countries from database
+my $sth = $dbh->prepare('SELECT s2.country, COUNT(s1.CLNAME) AS COUNT FROM ( SELECT DISTINCT country FROM ts3top WHERE country IS NOT NULL) s2 LEFT JOIN ts3top s1 ON s1.country = s2.country AND online = 1 GROUP BY 1;');
+
+$sth->execute() or die $DBI::errstr;;
+
+# FETCHROW ARRAY
+my @results;
+
+while (@results = $sth->fetchrow()) {
+	print $results[0].".value ".$results[1]."\n";
+}
+$sth->finish();
+
+## disconnect from database
+$dbh->disconnect();
+
+exit 0;
+
+
+       
+

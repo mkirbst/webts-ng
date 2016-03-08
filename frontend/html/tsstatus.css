@@ -1,0 +1,91 @@
+
+/**
+ * TSStatus: Teamspeak 3 viewer for php5
+ * @author Sebastien Gerard <sebeuu@gmail.com>
+ * @see http://tsstatus.sebastien.me/
+ * 
+ **/
+
+
+
+.tsstatus, .tsstatus *{
+	font-family: Lucida Console;
+	font-size: 12px;
+	font-style: normal;
+	vertical-align: middle;
+	margin: 0;
+	padding: 0;
+	white-space:nowrap;
+	color: blue;
+}
+
+.tsstatus{
+	font-family: Lucida Console;
+	font-size: 32px;
+	color: green;
+
+	width: 200px;
+	overflow: hidden;
+	position: relative;
+}
+
+.tsstatuserror{
+	font-family: Verdana;
+	font-size: 10px;
+	color: red;
+}
+
+.tsstatus .tsstatusPassword{
+	font-family: Courier New;
+	font-size: 10px;
+	color: red;
+
+	border-bottom: 1px solid #aaa;
+	padding-bottom: 2px;
+	margin-bottom: 2px;
+}
+
+.tsstatus .tsstatusNickname{
+	font-family: Courier New;
+	font-size: 100px;
+	color: green;
+
+	border-bottom: 1px solid #aaa;
+	padding-bottom: 2px;
+	margin-bottom: 2px;
+}
+
+
+.tsstatus .tsstatusServerName{
+	color: red;
+	
+}
+.tsstatus input{
+	width: 135px;
+	height: 18px;
+}
+.tsstatus .tsstatusItem{
+	margin-left: 18px;
+	clear: both;
+}
+.tsstatus .tsstatusLabel{
+	float: left;
+}
+.tsstatus .tsstatusFlags{
+	position: absolute;
+	right: 0;
+	clear: right;
+}
+.tsstatus a{
+	text-decoration: none;
+	color: #333;
+}
+.tsstatus a:hover{
+	text-decoration: none;
+	color: #F0F;
+}
+.tsstatus img{
+	margin-right: 2px;
+	border: 0;
+}
+
